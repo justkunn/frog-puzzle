@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Puzzle Menyeberang</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    .board {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+    }
+    .cell, .pulau {
+      width: 70px;
+      height: 70px;
+      border: 2px solid #333;
+      margin: 3px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      user-select: none;
+    }
+    .pulau {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      background: #f5f5f5;
+      flex-direction: column;
+    }
+    .orangA {
+      background: orange;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 50%;
+      margin: 2px;
+    }
+    .orangB {
+      background: steelblue;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 50%;
+      margin: 2px;
+    }
+    .selected {
+      outline: 3px solid red;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Puzzle Menyeberang (X,Y,Z ↔ A,B,C)</h2>
+<p>Klik orang → lalu klik tujuan (batu/pulau). Aturan: 1 langkah ke kosong atau lompat 2 langkah melewati 1 orang.</p>
+
+<div class="board" id="board"></div>
+
+<script>
+  // Representasi papan: [Pulau A, 1..7, Pulau B]
+  let board = {
+    A: ["X","Y","Z"],
+    1: null,2: null,3: null,4: null,5: null,6: null,7: null,
+    B: ["A","B","C"]
+  };
+
+  let selected = null; // orang yang dipilih
+
+  function render() {
+    const container = document.getElementById("board");
+    container.innerHTML = "";
+
+    // Pulau A
+    let pulauA = document.createElement("div");
+    pulauA.className = "pulau";
+    pulauA.onclick = ()=> handleClick("A");
+    board.A.forEach(p=>{
+      let span = document.createElement("div");
+      span.textContent = p;
+      span.className = p.match(/[XYZ]/)?"orangA":"orangB";
+      if (selected===p) span.classList.add("selected");
+      span.onclick = (e)=> {e.stopPropagation(); selected=p; render();};
+      pulauA.appendChild(span);
+    });
+    container.appendChild(pulauA);
+
+    // Batu 1-7
+    for (let i=1;i<=7;i++) {
+      let cell = document.createElement("div");
+      cell.className = "cell";
+      if (board[i]) {
+        cell.textContent = board[i];
+        cell.classList.add(board[i].match(/[XYZ]/)?"orangA":"orangB");
+        if (selected===board[i]) cell.classList.add("selected");
+        cell.onclick = (e)=> {e.stopPropagation(); selected=board[i]; render();};
+      } else {
+        cell.onclick = ()=> handleClick(i);
+      }
+      container.appendChild(cell);
+    }
+
+    // Pulau B
+    let pulauB = document.createElement("div");
+    pulauB.className = "pulau";
+    pulauB.onclick = ()=> handleClick("B");
+    board.B.forEach(p=>{
+      let span = document.createElement("div");
+      span.textContent = p;
+      span.className = p.match(/[XYZ]/)?"orangA":"orangB";
+      if (selected===p) span.classList.add("selected");
+      span.onclick = (e)=> {e.stopPropagation(); selected=p; render();};
+      pulauB.appendChild(span);
+    });
+    container.appendChild(pulauB);
+  }
+
+  function findPosition(person) {
+    if (board.A.includes(person)) return "A";
+    if (board.B.includes(person)) return "B";
+    for (let i=1;i<=7;i++) if (board[i]===person) return i;
+    return null;
+  }
+
+  function handleClick(target) {
+    if (!selected) {
+      // pilih default orang dari pulau
+      if (target==="A" && board.A.length) {
+        selected = board.A[board.A.length-1]; // pilih Z dulu (paling belakang)
+      } else if (target==="B" && board.B.length) {
+        selected = board.B[0]; // pilih A dulu (paling depan)
+      }
+    } else {
+      // coba gerakkan
+      tryMove(selected,target);
+      selected=null;
+    }
+    render();
+  }
+
+  function tryMove(person, target) {
+    let from = findPosition(person);
+    if (from===null) return;
+
+    // Dari Pulau A → ke batu 1 (normal), atau lompat ke batu 2 jika 1 terisi
+    if (from==="A") {
+      if (target===1 && !board[1]) {
+        move(person,"A",1); return;
+      }
+      if (target===2 && !board[2] && board[1]) {
+        move(person,"A",2); return;
+      }
+    }
+
+    // Dari Pulau B → ke batu 7 (normal), atau lompat ke batu 6 jika 7 terisi
+    if (from==="B") {
+      if (target===7 && !board[7]) {
+        move(person,"B",7); return;
+      }
+      if (target===6 && !board[6] && board[7]) {
+        move(person,"B",6); return;
+      }
+    }
+
+    // Dari batu
+    if (typeof from==="number") {
+      // maju/lompat ke kiri
+      if (typeof target==="number" && target===from-1 && !board[target]) {
+        move(person,from,target); return;
+      }
+      if (typeof target==="number" && target===from-2 && !board[target] && board[from-1]) {
+        move(person,from,target); return;
+      }
+
+      // maju/lompat ke kanan
+      if (typeof target==="number" && target===from+1 && !board[target]) {
+        move(person,from,target); return;
+      }
+      if (typeof target==="number" && target===from+2 && !board[target] && board[from+1]) {
+        move(person,from,target); return;
+      }
+
+      // ke pulau tujuan
+      if (target==="A" && from===1) { move(person,from,"A"); return; }
+      if (target==="B" && from===7) { move(person,from,"B"); return; }
+    }
+  }
+
+
+  function move(person, from, to) {
+    if (from==="A") board.A = board.A.filter(p=>p!==person);
+    else if (from==="B") board.B = board.B.filter(p=>p!==person);
+    else board[from]=null;
+
+    if (to==="A") board.A.push(person);
+    else if (to==="B") board.B.push(person);
+    else board[to]=person;
+  }
+
+  render();
+</script>
+
+</body>
+</html>
