@@ -1,36 +1,94 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="utf-8" />
   <title>Puzzle Menyeberang — Fixed</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align:center; margin:20px; }
-    .board { display:flex; justify-content:center; align-items:center; gap:6px; margin:18px 0; }
-    .cell, .pulau { width:72px; height:72px; border:2px solid #333; display:flex; align-items:center; justify-content:center; font-weight:700; border-radius:50%; cursor:pointer; user-select:none; }
-    .pulau { width:110px; height:110px; border-radius:12px; background:#f4f4f4; flex-direction:column; padding:6px; }
-    .orangA { background:orange; color:white; padding:6px 10px; border-radius:50%; margin:3px; }
-    .orangB { background:steelblue; color:white; padding:6px 10px; border-radius:50%; margin:3px; }
-    .selected { outline:3px solid #ff4666; transform:scale(1.05); }
-    .label { font-size:12px; color:#555; margin-top:6px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+
+    .board {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin: 18px 0;
+    }
+
+    .cell,
+    .pulau {
+      width: 72px;
+      height: 72px;
+      border: 2px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      border-radius: 50%;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .pulau {
+      width: 110px;
+      height: 110px;
+      border-radius: 12px;
+      background: #f4f4f4;
+      flex-direction: column;
+      padding: 6px;
+    }
+
+    .orangA {
+      background: orange;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 50%;
+      margin: 3px;
+    }
+
+    .orangB {
+      background: steelblue;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 50%;
+      margin: 3px;
+    }
+
+    .selected {
+      outline: 3px solid #ff4666;
+      transform: scale(1.05);
+    }
+
+    .label {
+      font-size: 12px;
+      color: #555;
+      margin-top: 6px;
+    }
   </style>
 </head>
+
 <body>
 
   <h2>Puzzle Menyeberang (X,Y,Z ↔ A,B,C) — Fixed</h2>
-  <p>Click a person (or island) to select, then click a target cell/island to move. Rules: move 1 forward to empty, or jump 2 over exactly one person. Special: jump from 2 → island A or 6 → island B when blocked.</p>
+  <p>Click a person (or island) to select, then click a target cell/island to move. Rules: move 1 forward to empty, or
+    jump 2 over exactly one person. Special: jump from 2 → island A or 6 → island B when blocked.</p>
 
   <div class="board" id="board"></div>
 
   <script>
     // board state: Pulau A (array), positions 1..7, Pulau B (array)
     const board = {
-      A: ["X","Y","Z"],
+      A: ["X", "Y", "Z"],
       1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null,
-      B: ["A","B","C"]
+      B: ["A", "B", "C"]
     };
 
     // origin map: tells us direction (A->right, B->left)
-    const origins = { X:"A", Y:"A", Z:"A", A:"B", B:"B", C:"B" };
+    const origins = { X: "A", Y: "A", Z: "A", A: "B", B: "B", C: "B" };
 
     let selected = null; // string like "X" or null
 
@@ -50,12 +108,12 @@
         span.onclick = (e) => { e.stopPropagation(); selected = p; render(); };
         pulauA.appendChild(span);
       });
-      const labelA = document.createElement("div"); labelA.className="label"; labelA.textContent="Pulau A";
+      const labelA = document.createElement("div"); labelA.className = "label"; labelA.textContent = "Pulau A";
       pulauA.appendChild(labelA);
       container.appendChild(pulauA);
 
       // Batu 1..7
-      for (let i=1;i<=7;i++){
+      for (let i = 1; i <= 7; i++) {
         const cell = document.createElement("div");
         cell.className = "cell";
         if (board[i]) {
@@ -85,7 +143,7 @@
         span.onclick = (e) => { e.stopPropagation(); selected = p; render(); };
         pulauB.appendChild(span);
       });
-      const labelB = document.createElement("div"); labelB.className="label"; labelB.textContent="Pulau B";
+      const labelB = document.createElement("div"); labelB.className = "label"; labelB.textContent = "Pulau B";
       pulauB.appendChild(labelB);
       container.appendChild(pulauB);
     }
@@ -93,7 +151,7 @@
     function findPosition(person) {
       if (board.A.includes(person)) return "A";
       if (board.B.includes(person)) return "B";
-      for (let i=1;i<=7;i++) if (board[i] === person) return i;
+      for (let i = 1; i <= 7; i++) if (board[i] === person) return i;
       return null;
     }
 
@@ -121,48 +179,78 @@
       // --- Moving out from islands ---
       if (from === "A") {
         // A -> 1 normally, or A -> 2 if 1 is blocked (jump into stone 2)
-        if (target === 1 && !board[1]) { move(person,"A",1); return; }
-        if (target === 2 && !board[2] && board[1]) { move(person,"A",2); return; }
+        if (target === 1 && !board[1]) { move(person, "A", 1); return; }
+        if (target === 2 && !board[2] && board[1]) { move(person, "A", 2); return; }
         return;
       }
       if (from === "B") {
         // B -> 7 normally, or B -> 6 if 7 is blocked
-        if (target === 7 && !board[7]) { move(person,"B",7); return; }
-        if (target === 6 && !board[6] && board[7]) { move(person,"B",6); return; }
+        if (target === 7 && !board[7]) { move(person, "B", 7); return; }
+        if (target === 6 && !board[6] && board[7]) { move(person, "B", 6); return; }
         return;
       }
 
       // --- From a stone (1..7) ---
       if (typeof from === "number") {
-        const forward = from + dir;         // one-step forward index
-        const jumpTo = from + 2*dir;        // two-step forward index (jump)
-        // move 1 forward (to a stone)
-        if (typeof target === "number" && target === forward && forward >=1 && forward <=7 && !board[forward]) {
+        const forward = from + dir;     // maju 1
+        const jumpTo = from + 2 * dir;    // lompat 2 ke depan
+        const back = from - dir;        // mundur 1
+        const backJump = from - 2 * dir;  // lompat 2 ke belakang
+
+        // --- MAJU ---
+        if (typeof target === "number" && target === forward && !board[forward]) {
           move(person, from, target); return;
         }
-        // jump over one person to a stone
-        if (typeof target === "number" && target === jumpTo && jumpTo>=1 && jumpTo<=7 && !board[jumpTo] && board[forward]) {
+        if (typeof target === "number" && target === jumpTo && !board[jumpTo] && board[forward]) {
           move(person, from, target); return;
         }
 
-        // move into destination island (normal: stepping off from edge)
-        // normal cases: if at edge and forward goes outside 1..7
-        if (target === destinationIsland) {
-          // normal stepping from edge: from==1 and dir==-1 -> to A; from==7 and dir==+1 -> to B
-          if ((from === 1 && dir === -1) || (from === 7 && dir === 1)) {
+        // --- MUNDUR ---
+        if (typeof target === "number" && target === back && !board[back]) {
+          move(person, from, target); return;
+        }
+        if (typeof target === "number" && target === backJump && !board[backJump] && board[back]) {
+          move(person, from, target); return;
+        }
+
+        // --- PULAU SEBERANG (seperti sebelumnya) ---
+        // --- PULAU (tujuan & asal) ---
+        if (target === destinationIsland || target === origin) {
+          // normal stepping ke pulau tujuan
+          if ((from === 1 && dir === -1 && target === "A") ||
+            (from === 7 && dir === 1 && target === "B")) {
             move(person, from, target); return;
           }
-          // SPECIAL: jump over edge-blocker into island:
-          // - if at 2, moving left (dir=-1) and board[1] occupied -> allow 2 -> A
-          // - if at 6, moving right (dir=+1) and board[7] occupied -> allow 6 -> B
+
+          // SPECIAL jump ke pulau tujuan
           if (from === 2 && dir === -1 && target === "A" && board[1]) {
             move(person, from, "A"); return;
           }
           if (from === 6 && dir === 1 && target === "B" && board[7]) {
             move(person, from, "B"); return;
           }
+
+          // >>> BARU: balik ke pulau asal <<<
+          if (from === 1 && target === "A" && !board[1]) {
+            move(person, from, "A"); return;
+          }
+          if (from === 7 && target === "B" && !board[7]) {
+            move(person, from, "B"); return;
+          }
         }
+
       }
+
+      // --- Kalau masih di pulau asal, izinkan balik lagi ---
+      if (from === "A" && target === "A") {
+        // no real move, tapi kita boleh reset selection
+        return;
+      }
+      if (from === "B" && target === "B") {
+        return;
+      }
+
+
     }
 
     function move(person, from, to) {
@@ -182,4 +270,5 @@
   </script>
 
 </body>
+
 </html>
